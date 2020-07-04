@@ -159,8 +159,6 @@ audio:init_default_sink()
 audio:sink_status_update()
 audio:init_cava()
 
-audio:connect_signal("audio::volume", function() require("dbg").notify("Volume emitted") end)
-
 if _G._VERSION == "Lua 5.1" then
     -- Lua 5.1 and LuaJIT without Lua5.2 compat does not support __gc on tables, so we need to use newproxy
     local g = newproxy(false)

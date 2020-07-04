@@ -3,8 +3,6 @@
 --
 -- @module cosy.widget.desktop
 ---------------------------------------------------------------------------
-local d = require("dbg")
-
 local gears = require("gears")
 local beautiful = require("beautiful")
 local wibox = require("wibox")
