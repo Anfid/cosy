@@ -6,19 +6,12 @@
 
 local awful = require("awful")
 local beautiful = require("beautiful")
-local menu = require("menu")
 local wibox = require("wibox")
 
 local widget = {
     desktop = require("cosy.widget.desktop"),
     panel   = require("cosy.widget.panel"),
 }
-
--- Launcher menu
-widget.launcher = awful.widget.launcher({
-    image = beautiful.awesome_icon,
-    menu = menu.main,
-})
 
 -- Textclock
 widget.textclock = {}
