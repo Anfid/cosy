@@ -85,4 +85,17 @@ function util.file.read(file)
     return text
 end
 
+function util.file.new(file, content)
+    local file = io.open(file, "w")
+    if not file then return nil end
+    if content ~= nil then
+        file:write(content)
+    end
+    file:close()
+end
+
+function util.file.delete(file)
+    return os.remove(file)
+end
+
 return util

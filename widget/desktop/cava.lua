@@ -7,10 +7,11 @@
 local gears = require("gears")
 local beautiful = require("beautiful")
 local wibox = require("wibox")
-local posix = require("posix")
 
 local table = table
 local tostring = tostring
+
+local audio = require("cosy.audio")
 
 -- Constants, depend on cava configuration
 local cava_max = 1000
@@ -29,30 +30,6 @@ cava.defaults = {
     spacing = 5,
     update_time = 0.04,
 }
-
--- Throws exception
-local function parse_fifo(cava_bars)
-    local cava_fifo = assert(posix.open("/tmp/cava", posix.O_RDONLY + posix.O_NONBLOCK), "Could not open /tmp/cava")
-    -- Buffer has to be big enough to read all accumulated output asap. This will prevent slow updating cava
-    -- from displaying outdated values
-    local bufsize = 4096
-    local cava_string = posix.read(cava_fifo, bufsize)
-    posix.close(cava_fifo)
-
-    local cava_val = {}
-    local match = cava_string:match("[%d;]+\n$")
-    if match ~= nil then
-        for match in cava_string:match("[%d;]+\n$"):gmatch("(%d+);") do
-            table.insert(cava_val, match)
-        end
-    end
-
-    -- Assert prevents blinking. Sometimes because of simultaneous access to fifo incomplete string may be received.
-    -- This way it may freeze a little sometimes, but it won't blink
-    assert(#cava_val == cava_bars, "Expected length of the table is "..tostring(cava_bars)..". Actual result: "..tostring(#cava_val))
-
-    return cava_val
-end
 
 local function draw_top(cava_widget, context, cr, width, height)
     local w = width / cava_widget.bars - cava_widget.spacing  -- block width
@@ -283,15 +260,9 @@ function cava.new(s, properties)
     function cava_widget:fit(context, width, height) return width, height end
 
     function cava_widget:update_val()
-        local success, result = pcall(parse_fifo, cava_widget.bars)
+        local cava_val = audio.cava.raw_val
 
-        if success then
-            _G.cava_global_val = result
-        end
-
-        local cava_val = _G.cava_global_val
-
-        assert(#cava_val == cava_widget.bars, "Global cava buffer has wrong amount of values")
+        if not cava_val or #cava_val ~= audio.cava.config.bars then return false end
 
         -- Adjust values to fit into the desired size
         local cava_val_fit = {}
@@ -326,13 +297,9 @@ function cava.new(s, properties)
 
     cava_box:set_widget(cava_widget)
 
-    cava_widget:emit_signal("widget::updated")
-    cava_widget.timer = gears.timer.start_new(
-        properties.update_time,
-        function()
-            pcall(cava_widget.update_val, cava_widget)
-            return true -- Ignore errors
-        end)
+    audio.connect_signal("cava::updated", function()
+        cava_widget:update_val()
+    end)
 
     return cava_box
 end

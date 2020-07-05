@@ -7,6 +7,9 @@
 local awful = require("awful")
 local posix_signal = require("posix.signal")
 local naughty = require("naughty")
+local gears = require("gears")
+local util = require("cosy.util")
+local posix = require("posix")
 
 local tonumber = tonumber
 local tostring = tostring
@@ -16,6 +19,11 @@ local audio = {
     mute = {},
     sink = 0,
     on_event = {},
+    cava = {
+        raw_val = {},
+        read_buf = "",
+        fifo = nil,
+    },
 }
 
 local signals = {}
@@ -59,8 +67,101 @@ function audio.on_event.sink.new(id)
     end
 end
 
-function audio:init_cava()
-    audio.cava_pid = awful.spawn("cava -p ".. require("gears.filesystem").get_configuration_dir().."/cava_raw.conf")
+audio.cava.config_template = [[
+[general]
+framerate = <framerate>
+autosens = 1
+bars = <bars>
+lower_cutoff_freq = 50
+higher_cutoff_freq = 10000
+[output]
+method = raw
+channels = stereo
+raw_target = /tmp/cava
+data_format = ascii
+ascii_max_range = 1000
+; bit_format = 8bit
+[smoothing]
+integral = 70
+monstercat = 1
+waves = 0
+gravity = 100
+[eq]
+1 = 1
+2 = 1
+3 = 1
+4 = 1
+5 = 1
+]]
+
+function audio.cava:init()
+    self.config = {
+        framerate = 30,
+        bars = 100,
+    }
+
+    if self.initialized then return end
+    local cava_config = self.config_template
+        :gsub("<framerate>", self.config.framerate)
+        :gsub("<bars>", self.config.bars)
+    util.file.new("/tmp/cava_config", cava_config)
+    self.pid = awful.spawn("cava -p /tmp/cava_config")
+
+    self.update_timer = gears.timer.start_new(
+        1 / self.config.framerate,
+        function()
+            local success, msg = self:parse_fifo()
+            if success then
+                self:update()
+            end
+            return true -- Ignore errors
+        end)
+
+    self.initialized = true
+end
+
+function audio.cava:parse_fifo()
+    local errmsg
+    if not self.fifo then
+        -- Closed in destructor
+        self.fifo, errmsg = posix.open("/tmp/cava", posix.O_RDONLY + posix.O_NONBLOCK)
+    end
+
+    if not self.fifo then return false, errmsg end
+
+    -- Buffer has to be big enough to read all accumulated output asap. This will prevent slow updating cava
+    -- from displaying outdated values
+    local bufsize = 4096
+    local cava_string, errmsg = posix.read(self.fifo, bufsize)
+    if not cava_string then return false, errmsg end
+
+    cava_string = self.read_buf..cava_string
+
+    for line in cava_string:gmatch("[%d;]+") do
+        local val_buf = {}
+
+        for val in line:gmatch("(%d+);") do
+            table.insert(val_buf, val)
+        end
+
+        if #val_buf == self.config.bars then
+            self.raw_val = val_buf
+            -- Discard buffered in case of successful join
+            self.read_buf = ""
+        elseif #val_buf < self.config.bars then
+            -- Buffer for future reads
+            self.read_buf = cava_string
+        else
+            -- Discard if something goes wrong
+            self.read_buf = ""
+        end
+    end
+
+    return true, self.raw_val
+end
+
+function audio.cava:update()
+    audio.emit_signal("cava::updated")
 end
 
 function audio:init_default_sink()
@@ -151,13 +252,17 @@ audio.mt = {}
 
 function audio.mt:__gc()
     posix_signal.kill(audio.subscription_pid)
-    posix_signal.kill(audio.cava_pid)
+    posix_signal.kill(audio.cava.pid)
+    if audio.cava.fifo then
+        posix.close(audio.cava.fifo)
+    end
+
 end
 
 audio:init_pulse_subscription()
 audio:init_default_sink()
 audio:sink_status_update()
-audio:init_cava()
+audio.cava:init()
 
 if _G._VERSION == "Lua 5.1" then
     -- Lua 5.1 and LuaJIT without Lua5.2 compat does not support __gc on tables, so we need to use newproxy
