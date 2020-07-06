@@ -108,7 +108,7 @@ local function draw_top_interpolated(cava_widget, context, cr, width, height)
     local prev_val = cava_widget.zero_size
     local prev_pos = -spacing / 2
     local prev_d_val = 0
-    local val = cava_widget.val[1] or cava_widget.zero_size
+    local val = cava_widget.val[1] + cava_widget.zero_size
     local pos = prev_pos + spacing
     local next_pos = pos + spacing
 
@@ -117,7 +117,7 @@ local function draw_top_interpolated(cava_widget, context, cr, width, height)
     cr:move_to(prev_pos, cava_widget.zero_size)
 
     for i = 1, #cava_widget.val + 1 do
-        local next_val = cava_widget.val[i + 1] or cava_widget.zero_size
+        local next_val = (cava_widget.val[i + 1] or 0) + cava_widget.zero_size
         next_pos = next_pos + spacing
 
         local d_val = spacing / 2 * (next_val - prev_val) / (next_pos - prev_pos)
@@ -136,7 +136,7 @@ local function draw_left_interpolated(cava_widget, context, cr, width, height)
     local prev_val = cava_widget.zero_size
     local prev_pos = -spacing / 2
     local prev_d_val = 0
-    local val = cava_widget.val[1] or cava_widget.zero_size
+    local val = cava_widget.val[1] + cava_widget.zero_size
     local pos = prev_pos + spacing
     local next_pos = pos + spacing
 
@@ -145,7 +145,7 @@ local function draw_left_interpolated(cava_widget, context, cr, width, height)
     cr:set_line_width(2)
 
     for i = 1, #cava_widget.val + 1 do
-        local next_val = cava_widget.val[i + 1] or cava_widget.zero_size
+        local next_val = (cava_widget.val[i + 1] or 0) + cava_widget.zero_size
         next_pos = next_pos + spacing
 
         local d_val = spacing / 2 * (next_val - prev_val) / (next_pos - prev_pos)
@@ -164,7 +164,7 @@ local function draw_bottom_interpolated(cava_widget, context, cr, width, height)
     local prev_val = cava_widget.zero_size
     local prev_pos = -spacing / 2
     local prev_d_val = 0
-    local val = cava_widget.val[1] or cava_widget.zero_size
+    local val = cava_widget.val[1] + cava_widget.zero_size
     local pos = prev_pos + spacing
     local next_pos = pos + spacing
 
@@ -173,7 +173,7 @@ local function draw_bottom_interpolated(cava_widget, context, cr, width, height)
     cr:move_to(prev_pos, height - cava_widget.zero_size)
 
     for i = 1, #cava_widget.val + 1 do
-        local next_val = cava_widget.val[i + 1] or cava_widget.zero_size
+        local next_val = (cava_widget.val[i + 1] or 0) + cava_widget.zero_size
         next_pos = next_pos + spacing
 
         local d_val = spacing / 2 * (next_val - prev_val) / (next_pos - prev_pos)
@@ -192,7 +192,7 @@ local function draw_right_interpolated(cava_widget, context, cr, width, height)
     local prev_val = cava_widget.zero_size
     local prev_pos = -spacing / 2
     local prev_d_val = 0
-    local val = cava_widget.val[1] or cava_widget.zero_size
+    local val = cava_widget.val[1] + cava_widget.zero_size
     local pos = prev_pos + spacing
     local next_pos = pos + spacing
 
@@ -201,7 +201,7 @@ local function draw_right_interpolated(cava_widget, context, cr, width, height)
     cr:set_line_width(2)
 
     for i = 1, #cava_widget.val + 1 do
-        local next_val = cava_widget.val[i + 1] or cava_widget.zero_size
+        local next_val = (cava_widget.val[i + 1] or 0) + cava_widget.zero_size
         next_pos = next_pos + spacing
 
         local d_val = spacing / 2 * (next_val - prev_val) / (next_pos - prev_pos)
