@@ -13,8 +13,8 @@ local tostring = tostring
 
 local audio = require("cosy.audio")
 
--- Constants, depend on cava configuration
-local cava_max = 1000
+-- Max value for 16 bit
+local cava_max = 65536
 
 local cava = {}
 cava.mt = {}
@@ -216,9 +216,6 @@ local function draw_right_interpolated(cava_widget, context, cr, width, height)
 end
 
 -- TODO: Document properties
--- update_time - how often widget is redrawn. For single widget 0.05 works best. However, if more than one widget is
--- used, it is better to set to 0.01. Widgets sometimes interrupt each other's reading of fifo and faster redraw rate
--- compensates lag frames
 function cava.new(s, properties)
     local properties = gears.table.join(cava.defaults, properties or {})
     local cava_widget = gears.table.join(properties, wibox.widget.base.make_widget())

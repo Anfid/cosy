@@ -11,6 +11,7 @@ local gears = require("gears")
 
 local util = {}
 util.math = {}
+util.bit = {}
 util.file = {}
 
 --- Set wallpaper for screen s
@@ -69,6 +70,15 @@ end
 
 
 function util.math.round(x) return x + 0.5 - (x + 0.5) % 1 end
+
+
+if _G._VERSION == "Lua 5.3" then
+    function util.bit.rol(x, n)
+        util.bit.rol = bit32.lrotate
+    end
+else
+    util.bit.rol = bit.rol
+end
 
 
 function util.file.exists(command)

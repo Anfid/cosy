@@ -13,6 +13,7 @@ local posix = require("posix")
 
 local tonumber = tonumber
 local tostring = tostring
+local bit = util.bit
 
 local audio = {
     volume = {},
@@ -78,9 +79,9 @@ higher_cutoff_freq = 10000
 method = raw
 channels = stereo
 raw_target = /tmp/cava
-data_format = ascii
+data_format = binary
 ascii_max_range = 1000
-; bit_format = 8bit
+bit_format = 16bit
 [smoothing]
 integral = 70
 monstercat = 1
@@ -95,12 +96,13 @@ gravity = 100
 ]]
 
 function audio.cava:init()
+    if self.initialized then return end
+
     self.config = {
         framerate = 30,
         bars = 100,
     }
 
-    if self.initialized then return end
     local cava_config = self.config_template
         :gsub("<framerate>", self.config.framerate)
         :gsub("<bars>", self.config.bars)
@@ -110,7 +112,7 @@ function audio.cava:init()
     self.update_timer = gears.timer.start_new(
         1 / self.config.framerate,
         function()
-            local success, msg = self:parse_fifo()
+            local success, msg = pcall(self.parse_fifo, self)
             if success then
                 self:update()
             end
@@ -129,32 +131,28 @@ function audio.cava:parse_fifo()
 
     if not self.fifo then return false, errmsg end
 
-    -- Buffer has to be big enough to read all accumulated output asap. This will prevent slow updating cava
-    -- from displaying outdated values
-    local bufsize = 4096
-    local cava_string, errmsg = posix.read(self.fifo, bufsize)
-    if not cava_string then return false, errmsg end
+    local bufsize = self.config.bars * 2
 
-    cava_string = self.read_buf..cava_string
+    local cava_data, errmsg = posix.read(self.fifo, bufsize)
+    if not cava_data then return false, errmsg end
 
-    for line in cava_string:gmatch("[%d;]+") do
-        local val_buf = {}
+    self.read_buf = self.read_buf..cava_data
 
-        for val in line:gmatch("(%d+);") do
-            table.insert(val_buf, val)
+    while #self.read_buf / 2 >= self.config.bars do
+        self.raw_val = {}
+        for byte = 1, self.config.bars do
+            local high_byte = bit.rol(self.read_buf:byte(byte * 2), 8)
+            local low_byte = self.read_buf:byte(byte * 2 - 1)
+            table.insert(self.raw_val, high_byte + low_byte)
         end
 
-        if #val_buf == self.config.bars then
-            self.raw_val = val_buf
-            -- Discard buffered in case of successful join
-            self.read_buf = ""
-        elseif #val_buf < self.config.bars then
-            -- Buffer for future reads
-            self.read_buf = cava_string
-        else
-            -- Discard if something goes wrong
-            self.read_buf = ""
-        end
+        self.read_buf = self.read_buf:sub(bufsize + 1)
+
+        -- Extra read attempt in case of accumulated data
+        cava_data = posix.read(self.fifo, bufsize)
+        if not cava_data then return true, self.raw_val end
+
+        self.read_buf = self.read_buf..cava_data
     end
 
     return true, self.raw_val
