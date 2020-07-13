@@ -7,7 +7,7 @@
 local beautiful = require("beautiful")
 local gears = require("gears")
 local wibox = require("wibox")
-local audio = require("cosy.audio")
+local audio = require("cosy.system.audio")
 
 local volume = {}
 volume.mt = {}

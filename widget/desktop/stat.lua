@@ -6,7 +6,7 @@
 local gears = require("gears")
 local beautiful = require("beautiful")
 local wibox = require("wibox")
-local sysinfo = require("cosy.sysinfo")
+local sys_stat = require("cosy.system.status")
 
 local dpi = beautiful.xresources.apply_dpi
 local pi = math.pi
@@ -210,7 +210,7 @@ local function setup_arcs(self, cr)
     local angle_start = 3 * (pi / 180)
     local angle_end = 118 * (pi / 180)
 
-    local cores = sysinfo.cpu.cores
+    local cores = sys_stat.cpu.cores
     local w
     if 3 * cores > width then
         w = 2
@@ -220,9 +220,9 @@ local function setup_arcs(self, cr)
     end
 
     -- CPU
-    for i = 1, sysinfo.cpu.cores do
+    for i = 1, sys_stat.cpu.cores do
         local r = 75 + ((w + 1) * (i - 1))
-        local val = sysinfo.cpu.load[i]
+        local val = sys_stat.cpu.load[i]
 
         local bg_arc = {
             x = x,
@@ -254,7 +254,7 @@ local function setup_arcs(self, cr)
         local w = width
         local angle_end = 239 * (pi / 180)
         local angle_start = 122 * (pi / 180)
-        local val = (sysinfo.mem.total - sysinfo.mem.available) / sysinfo.mem.total
+        local val = (sys_stat.ram.total - sys_stat.ram.available) / sys_stat.ram.total
 
         local bg_arc = {
             x = x,
@@ -329,11 +329,14 @@ function stat.new(s, properties)
         height = properties.h,
     })
 
+    sys_stat.cpu:init(1)
+    sys_stat.ram:init(1)
+
     stat_box:set_widget(stat_widget)
 
     stat_widget:emit_signal("widget::updated")
 
-    sysinfo.connect_signal("cpu::updated", function() stat_widget:emit_signal("widget::updated") end)
+    sys_stat.connect_signal("cpu::updated", function() stat_widget:emit_signal("widget::updated") end)
 
     return stat_box
 end

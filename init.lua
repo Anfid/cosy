@@ -7,8 +7,7 @@
 
 return {
     util     = require("cosy.util"),
-    audio    = require("cosy.audio"),
-    sysinfo  = require("cosy.sysinfo"),
+    system   = require("cosy.system"),
     layout   = require("cosy.layout"),
     widget   = require("cosy.widget"),
 }

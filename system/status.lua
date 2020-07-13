@@ -5,12 +5,11 @@
 ---------------------------------------------------------------------------
 
 local gears = require("gears")
-local unix_std = require("posix.unistd")
 local util = require("cosy.util")
 local tonumber = tonumber
 
-local sysinfo = {
-    -- CPU information
+local status = {
+    -- CPU statusrmation
     cpu = {
         -- Total core count
         cores = 0,
@@ -23,7 +22,7 @@ local sysinfo = {
         -- Virtual to physical core id
         proc_to_core = {},
     },
-    mem = {
+    ram = {
         -- Total RAM in kB
         total = 0,
         -- Free RAM in kB
@@ -42,7 +41,23 @@ local sysinfo = {
 
 local signals = {}
 
-function sysinfo.cpu:init()
+-- TODO: implement subscriptions for various timings
+function status.cpu:init(update_time)
+    if type(update_time) ~= "number" then
+        update_time = 1
+    end
+
+    if self.initialized == true then
+        -- If default timeout is different from 1, nil is denied by design to prevent
+        -- external modules from load order errors
+        if update_time ~= self.update_timer.timeout then
+            error("cosy.system.status: CPU status on various timeouts is not yet implemented")
+        else
+            -- Already initialized
+            return
+        end
+    end
+
     local cpuinfo = util.file.read("/proc/cpuinfo")
     local core_count = 0
     for procinfo in cpuinfo:gmatch(".-\n\n") do
@@ -55,15 +70,24 @@ function sysinfo.cpu:init()
         core_count = core_count + 1
     end
     self.cores = core_count
+
+    self.update_timer = gears.timer.start_new(
+        update_time,
+        function()
+            self:update()
+            status.emit_signal("cpu::updated")
+            return true
+        end
+    )
+
+    self.initialized = true
 end
 
-function sysinfo.cpu:update()
+function status.cpu:update()
     self:update_load()
-
-    sysinfo.emit_signal("cpu::updated")
 end
 
-function sysinfo.cpu:update_load()
+function status.cpu:update_load()
     self.load._prev = self.load._this
     self.load._this = {}
 
@@ -112,7 +136,35 @@ function sysinfo.cpu:update_load()
     end
 end
 
-function sysinfo.mem:update()
+function status.ram:init(update_time)
+    if type(update_time) ~= "number" then
+        update_time = 1
+    end
+
+    if self.initialized == true then
+        -- If default timeout is different from 1, nil is denied by design to prevent
+        -- external modules from load order errors
+        if update_time ~= self.update_timer.timeout then
+            error("cosy.system.status: RAM status on various timeouts is not yet implemented")
+        else
+            -- Already initialized
+            return
+        end
+    end
+
+    self.update_timer = gears.timer.start_new(
+        update_time,
+        function()
+            self:update()
+            status.emit_signal("ram::updated")
+            return true
+        end
+    )
+
+    self.initialized = true
+end
+
+function status.ram:update()
     local stat = util.file.read("/proc/meminfo")
     local total, free, avail = stat:match(
         "MemTotal:%s+(%d+).*"..
@@ -124,24 +176,50 @@ function sysinfo.mem:update()
     self.available = tonumber(avail)
 end
 
-function sysinfo.temp:init()
+function status.temp:init(update_time)
+    if type(update_time) ~= "number" then
+        update_time = 1
+    end
+
+    if self.initialized == true then
+        -- If default timeout is different from 1, nil is denied by design to prevent
+        -- external modules from load order errors
+        if update_time ~= self.update_timer.timeout then
+            error("cosy.system.status: Temperature status on various timeouts is not yet implemented")
+        else
+            -- Already initialized
+            return
+        end
+    end
+
     for line in io.popen("for x in /sys/class/hwmon/hwmon*; do printf \"%s \" $x; cat $x/name; done"):lines() do
         local path, name = line:match("([^%s]-)%s+([^\n]-)\n")
         if name == "coretemp" then
             self.cpu.path = path
         end
     end
+
+    self.update_timer = gears.timer.start_new(
+        update_time,
+        function()
+            self:update()
+            status.emit_signal("temperature::updated")
+            return true
+        end
+    )
+
+    self.initialized = true
 end
 
-function sysinfo.temp:update()
+function status.temp:update()
 end
 
-function sysinfo.connect_signal(name, callback)
+function status.connect_signal(name, callback)
     signals[name] = signals[name] or {}
     table.insert(signals[name], callback)
 end
 
-function sysinfo.disconnect_signal(name, callback)
+function status.disconnect_signal(name, callback)
     signals[name] = signals[name] or {}
 
     for k, v in ipairs(signals[name]) do
@@ -152,7 +230,7 @@ function sysinfo.disconnect_signal(name, callback)
     end
 end
 
-function sysinfo.emit_signal(name, ...)
+function status.emit_signal(name, ...)
     signals[name] = signals[name] or {}
 
     for _, cb in ipairs(signals[name]) do
@@ -160,17 +238,4 @@ function sysinfo.emit_signal(name, ...)
     end
 end
 
-sysinfo.cpu:init()
-sysinfo.temp:init()
-sysinfo.mem:update()
-
-sysinfo.refresh_timer = gears.timer.start_new(
-    1,
-    function()
-        sysinfo.cpu:update()
-        sysinfo.mem:update()
-        return true
-    end
-)
-
-return sysinfo
+return status

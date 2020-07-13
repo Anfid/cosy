@@ -11,7 +11,7 @@ local wibox = require("wibox")
 local table = table
 local tostring = tostring
 
-local audio = require("cosy.audio")
+local audio = require("cosy.system.audio")
 
 -- Max value for 16 bit
 local cava_max = 65536
