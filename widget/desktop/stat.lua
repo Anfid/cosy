@@ -8,6 +8,8 @@ local beautiful = require("beautiful")
 local wibox = require("wibox")
 local sys_stat = require("cosy.system.status")
 
+local d = require("cosy.dbg")
+
 local dpi = beautiful.xresources.apply_dpi
 local pi = math.pi
 local floor = math.floor

@@ -13,6 +13,8 @@ local tostring = tostring
 
 local audio = require("cosy.system.audio")
 
+local d = require("cosy.dbg")
+
 -- Max value for 16 bit
 local cava_max = 65536
 

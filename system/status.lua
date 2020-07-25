@@ -30,6 +30,7 @@ local status = {
         -- Available RAM in kB
         available = 0,
     },
+    rom = {},
     temp = {
         -- Temperature in millidegrees celcius per physical core
         cpu = {
@@ -174,6 +175,9 @@ function status.ram:update()
     self.total = tonumber(total)
     self.free = tonumber(free)
     self.available = tonumber(avail)
+end
+
+function status.rom:init()
 end
 
 function status.temp:init(update_time)

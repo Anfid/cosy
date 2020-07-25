@@ -11,6 +11,8 @@ local gears = require("gears")
 local util = require("cosy.util")
 local posix = require("posix")
 
+local d = require("cosy.dbg")
+
 local tonumber = tonumber
 local tostring = tostring
 local bit = util.bit
