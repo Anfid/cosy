@@ -8,9 +8,6 @@ local gears = require("gears")
 local beautiful = require("beautiful")
 local wibox = require("wibox")
 
-local table = table
-local tostring = tostring
-
 local audio = require("cosy.system.audio")
 
 local d = require("cosy.dbg")

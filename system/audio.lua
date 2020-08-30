@@ -36,7 +36,9 @@ function audio.init_pulse_subscription()
         stdout = function(line)
             local event, object, id = line:match([[Event '(%a+)' on ([a-z\-]+) #(%d)]])
             local id = tonumber(id)
-            audio.on_event[object][event](id)
+            if audio.on_event[object] ~= nil and audio.on_event[object][event] ~= nil then
+                audio.on_event[object][event](id)
+            end
         end,
         stderr = function(line)
             -- TODO: Reconnect on error?

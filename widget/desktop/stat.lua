@@ -224,7 +224,7 @@ local function setup_arcs(self, cr)
     -- CPU
     for i = 1, sys_stat.cpu.cores do
         local r = 75 + ((w + 1) * (i - 1))
-        local val = sys_stat.cpu.load[i]
+        local val = sys_stat.cpu.load[i] or 0
 
         local bg_arc = {
             x = x,
@@ -256,7 +256,10 @@ local function setup_arcs(self, cr)
         local w = width
         local angle_end = 239 * (pi / 180)
         local angle_start = 122 * (pi / 180)
-        local val = (sys_stat.ram.total - sys_stat.ram.available) / sys_stat.ram.total
+        local val = (sys_stat.ram.total - sys_stat.ram.available) / sys_stat.ram.total or 0
+
+        -- NaN check
+        if val ~= val then val = 0 end
 
         local bg_arc = {
             x = x,
