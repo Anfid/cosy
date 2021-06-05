@@ -23,6 +23,7 @@ local audio = {
     sink = 0,
     on_event = {},
     cava = {
+        max_value = 65536,
         raw_val = {},
         read_buf = "",
         fifo = nil,
