@@ -1,7 +1,7 @@
 ---------------------------------------------------------------------------
 --- Widget module for cosy
 --
--- @module cosy.widget
+-- @module widget
 ---------------------------------------------------------------------------
 
 local awful = require("awful")
@@ -11,6 +11,7 @@ local wibox = require("wibox")
 local widget = {
     desktop = require("cosy.widget.desktop"),
     panel   = require("cosy.widget.panel"),
+    common  = require("cosy.widget.common"),
 }
 
 -- Textclock

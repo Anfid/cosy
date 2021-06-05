@@ -1,7 +1,7 @@
 ---------------------------------------------------------------------------
---- Cava desktop widget
+--- Cava audio visualizer desktop widget
 --
--- @module cosy.widget.desktop
+-- @module widget.desktop.cava
 ---------------------------------------------------------------------------
 
 local gears = require("gears")

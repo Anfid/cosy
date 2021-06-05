@@ -1,7 +1,7 @@
 ---------------------------------------------------------------------------
 --- Volume panel widget
 --
--- @module cosy.widget.panel
+-- @module widget.panel.volume
 ---------------------------------------------------------------------------
 
 local beautiful = require("beautiful")

@@ -1,7 +1,7 @@
 ---------------------------------------------------------------------------
---- System module for cosy
+--- System monitoring and control module for cosy
 --
--- @module cosy.system
+-- @module system
 ---------------------------------------------------------------------------
 
 local system = {

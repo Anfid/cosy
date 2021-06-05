@@ -2,7 +2,7 @@
 --- Util
 -- Utility functions
 --
--- @module cosy.util
+-- @module util
 ---------------------------------------------------------------------------
 
 local awful = require("awful")
@@ -15,7 +15,7 @@ util.bit = {}
 util.file = {}
 
 --- Set wallpaper for screen s
--- @param screen
+-- @tparam screen s Screen to set wallpaper
 function util.set_wallpaper(s)
     -- Wallpaper
     if beautiful.wallpaper then
@@ -29,7 +29,7 @@ function util.set_wallpaper(s)
 end
 
 --- Toggle titlebar on or off depending on s. Creates titlebar if it doesn't exist
--- @param client Client to update titlebar state
+-- @tparam client c Client to update titlebar state
 function util.manage_titlebar(c)
     -- Fullscreen clients are considered floating. Return to prevent clients from shifting down in fullscreen mode
     if c.fullscreen then return end
@@ -47,16 +47,16 @@ function util.manage_titlebar(c)
 end
 
 --- Checks if client is floating and can be moved
--- @param client Client to test
--- @return bool
+-- @tparam client c Client to test
+-- @treturn bool `true` if client is floating
 function util.client_free_floating(c)
     return (c.floating or awful.layout.get(c.screen) == awful.layout.suit.floating)
         and not (c.fullscreen or c.maximized or c.maximized_vertical or c.maximized_horizontal)
 end
 
 --- Count table elements
--- @param table Table to count elements
--- @return number Amount of key-value pairs in the table
+-- @tparam table table Table to count elements
+-- @treturn number Amount of key-value pairs in the table
 function util.table_count(table)
     local count = 0
     for _, v in pairs(table) do

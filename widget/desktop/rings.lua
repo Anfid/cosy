@@ -1,12 +1,14 @@
 ---------------------------------------------------------------------------
 --- System info desktop widget
 --
--- @module cosy.widget.desktop
+-- @module widget.desktop.rings
+-- @alias rings
 ---------------------------------------------------------------------------
 local gears = require("gears")
 local beautiful = require("beautiful")
 local wibox = require("wibox")
 local sys_stat = require("cosy.system.status")
+local cpu_graph = require("cosy.widget.common.cpu_graph")
 
 local d = require("cosy.dbg")
 
@@ -14,17 +16,17 @@ local dpi = beautiful.xresources.apply_dpi
 local pi = math.pi
 local floor = math.floor
 
-local stat = {
+local rings = {
     arcs = {}
 }
-stat.mt = {}
+rings.mt = {}
 
-stat.defaults = {
+rings.defaults = {
     bg_color = gears.color(beautiful.fg_normal.."40"),
     fg_color = gears.color(beautiful.fg_normal.."a0"),
 }
 
-stat.defaults.rings = {
+rings.defaults.rings = {
     --[[
         * name        - type of the stat to display.
                         See https://github.com/brndnmtthws/conky/wiki/Configuration-Variables for various possible
@@ -202,8 +204,8 @@ stat.defaults.rings = {
 
 local function setup_arcs(self, cr)
     self.arcs = {}
-    local bg_color = stat.defaults.bg_color
-    local fg_color = stat.defaults.fg_color
+    local bg_color = rings.defaults.bg_color
+    local fg_color = rings.defaults.fg_color
     -- TODO: replace const width with configurable
     local width = dpi(24)
 
@@ -224,7 +226,7 @@ local function setup_arcs(self, cr)
     -- CPU
     for i = 1, sys_stat.cpu.cores do
         local r = 75 + ((w + 1) * (i - 1))
-        local val = sys_stat.cpu.load[i] or 0
+        local val = sys_stat.cpu.load[i].used
 
         local bg_arc = {
             x = x,
@@ -305,9 +307,9 @@ end
 -- update_time - how often widget is redrawn. For single widget 0.05 works best. However, if more than one widget is
 -- used, it is better to set to 0.01. Widgets sometimes interrupt each other's reading of fifo and faster redraw rate
 -- compensates lag frames
-function stat.new(s, properties)
-    local properties = gears.table.join(stat.defaults, properties or {})
-    local stat_widget = gears.table.join(properties, wibox.widget.base.make_widget())
+function rings.new(s, properties)
+    local properties = gears.table.join(rings.defaults, properties or {})
+    local rings_widget = gears.table.join(properties, wibox.widget.base.make_widget())
 
     properties.w = s.geometry.width
     properties.h = s.geometry.height
@@ -315,19 +317,19 @@ function stat.new(s, properties)
     if not properties.x then properties.x = 0 end
     if not properties.y then properties.y = 0 end
 
-    function stat_widget:fit(context, width, height) return width, height end
-    stat_widget.setup_arcs = setup_arcs
-    stat_widget.draw_arcs = draw_arcs
-    stat_widget.draw = draw
+    function rings_widget:fit(context, width, height) return width, height end
+    rings_widget.setup_arcs = setup_arcs
+    rings_widget.draw_arcs = draw_arcs
+    rings_widget.draw = draw
 
-    local stat_box = wibox({
+    local rings_box = wibox({
         screen = s,
         type = "desktop",
         visible = true,
         bg = "#00000000",
     })
 
-    stat_box:geometry({
+    rings_box:geometry({
         x = s.geometry.x + properties.x,
         y = s.geometry.y + properties.y,
         width  = properties.w,
@@ -337,17 +339,31 @@ function stat.new(s, properties)
     sys_stat.cpu:init(1)
     sys_stat.ram:init(1)
 
-    stat_box:set_widget(stat_widget)
+    local cpu_graph_widget = cpu_graph.new({})
 
-    stat_widget:emit_signal("widget::updated")
+    local widgets = wibox.layout.manual()
+    widgets:add_at(rings_widget, {x=0, y=0, width=500, height=500})
+    widgets:add_at(cpu_graph_widget, {x=450, y=50, width=500, height=200})
+    local separator_config = {
+        thickness = dpi(1),
+        border_width = 0,
+        span_ratio = 1,
+        color = beautiful.fg_normal,
+        shape = gears.shape["rectangle"],
+    }
+    widgets:add_at(wibox.widget.separator(separator_config), {x=450, y=250, width=500, height=dpi(1)})
 
-    sys_stat.connect_signal("cpu::updated", function() stat_widget:emit_signal("widget::updated") end)
+    rings_box:set_widget(widgets)
 
-    return stat_box
+    rings_widget:emit_signal("widget::updated")
+
+    sys_stat.connect_signal("cpu::updated", function() rings_widget:emit_signal("widget::updated") end)
+
+    return rings_box
 end
 
-function stat.mt:__call(...)
-    return stat.new(...)
+function rings.mt:__call(...)
+    return rings.new(...)
 end
 
-return setmetatable(stat, stat.mt)
+return setmetatable(rings, rings.mt)

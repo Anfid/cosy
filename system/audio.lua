@@ -1,7 +1,7 @@
 ---------------------------------------------------------------------------
 --- Audio control
 --
--- @module cosy
+-- @module system.audio
 ---------------------------------------------------------------------------
 
 local awful = require("awful")
@@ -201,6 +201,9 @@ function audio:sink_status_update()
     )
 end
 
+--- Get audio volume method
+-- @tparam[opt=default] number sink Sink number
+-- @treturn number volume level in percentage
 function audio:volume_get(sink)
     local sink = sink or self.sink
     if sink ~= nil then
@@ -210,13 +213,19 @@ function audio:volume_get(sink)
     end
 end
 
-function audio:volume_set(val, sink)
+--- Set audio volume method
+-- @tparam number volume Volume level in percentage
+-- @tparam[opt=default] number sink Sink number
+function audio:volume_set(volume, sink)
     local sink = sink or self.sink
     if sink ~= nil then
-        awful.spawn("pactl set-sink-volume "..sink.." "..val)
+        awful.spawn("pactl set-sink-volume "..sink.." "..volume)
     end
 end
 
+--- Mute audio method
+-- @tparam[opt="toggle"] string val "toggle", "true" or "false"
+-- @tparam[opt=default] number sink Sink number
 function audio:volume_mute(val, sink)
     local sink = sink or self.sink
     local val = val and tostring(val) or "toggle"
@@ -226,11 +235,21 @@ function audio:volume_mute(val, sink)
     end
 end
 
+--- Subscribe to audio events. Following events are available:
+-- * "cava::updated"
+-- * "audio::volume"
+-- * "audio::mute"
+--
+-- @tparam string name Event name
+-- @tparam function callback Callback function
 function audio.connect_signal(name, callback)
     signals[name] = signals[name] or {}
     table.insert(signals[name], callback)
 end
 
+--- Unsubscribe from audio events. Same function pointer has to be provided to unsubscribe.
+-- @tparam string name Event name
+-- @tparam function callback Callback function
 function audio.disconnect_signal(name, callback)
     signals[name] = signals[name] or {}
 

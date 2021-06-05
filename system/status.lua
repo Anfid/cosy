@@ -1,21 +1,23 @@
 ---------------------------------------------------------------------------
 --- System monitoring
 --
--- @module cosy
+-- @module system.status
 ---------------------------------------------------------------------------
 
 local gears = require("gears")
 local util = require("cosy.util")
 local tonumber = tonumber
 
+local d = require("cosy.dbg")
+
 local status = {
-    -- CPU statusrmation
+    -- CPU status information
     cpu = {
         -- Total core count
         cores = 0,
         -- CPU usage per core
         load = {
-            total = 0,
+            total = {},
             _prev = nil,
             _this = nil,
         },
@@ -41,6 +43,22 @@ local status = {
 }
 
 local signals = {}
+
+local function new_load_table()
+    return {
+        used = 0,
+        user = 0,
+        nice = 0,
+        system = 0,
+        idle = 0,
+        iowait = 0,
+        irq = 0,
+        softirq = 0,
+        steal = 0,
+        guest = 0,
+        guest_nice = 0,
+    }
+end
 
 -- TODO: implement subscriptions for various timings
 function status.cpu:init(update_time)
@@ -71,6 +89,15 @@ function status.cpu:init(update_time)
         core_count = core_count + 1
     end
     self.cores = core_count
+
+    -- initialize data array
+    self.load.total = new_load_table()
+    for i = 1,self.cores do
+        self.load[i] = new_load_table()
+    end
+
+    self:update()
+    status.emit_signal("cpu::updated")
 
     self.update_timer = gears.timer.start_new(
         update_time,
@@ -121,18 +148,28 @@ function status.cpu:update_load()
             for _, val in pairs(self.load._prev[core]) do
                 prev_total = prev_total + val
             end
-            local prev_idle = self.load._prev[core].idle + self.load._prev[core].iowait
 
             local this_total = 0
             for _, val in pairs(self.load._this[core]) do
                 this_total = this_total + val
             end
-            local this_idle = self.load._this[core].idle + self.load._this[core].iowait
 
-            local total = prev_total - this_total
-            local idle = prev_idle - this_idle
+            local total = this_total - prev_total
 
-            self.load[core] = (total - idle) / total
+            local prev_unused = self.load._prev[core].idle + self.load._prev[core].iowait
+            local this_unused = self.load._this[core].idle + self.load._this[core].iowait
+            self.load[core].used = (total + prev_unused - this_unused) / total
+
+            self.load[core].user = (self.load._this[core].user - self.load._prev[core].user) / total
+            self.load[core].nice = (self.load._this[core].nice - self.load._prev[core].nice) / total
+            self.load[core].system = (self.load._this[core].system - self.load._prev[core].system) / total
+            self.load[core].idle = (self.load._this[core].idle - self.load._prev[core].idle) / total
+            self.load[core].iowait = (self.load._this[core].iowait - self.load._prev[core].iowait) / total
+            self.load[core].irq = (self.load._this[core].irq - self.load._prev[core].irq) / total
+            self.load[core].softirq = (self.load._this[core].softirq - self.load._prev[core].softirq) / total
+            self.load[core].steal = (self.load._this[core].steal - self.load._prev[core].steal) / total
+            self.load[core].guest = (self.load._this[core].guest - self.load._prev[core].guest) / total
+            self.load[core].guest_nice = (self.load._this[core].guest_nice - self.load._prev[core].guest_nice) / total
         end
     end
 end

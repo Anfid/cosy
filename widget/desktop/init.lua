@@ -1,12 +1,12 @@
 ---------------------------------------------------------------------------
 --- Set of desktop widgets
 --
--- @module cosy.widget.desktop
+-- @module widget.desktop
 ---------------------------------------------------------------------------
 
 local desktop = {
     cava = require("cosy.widget.desktop.cava"),
-    stat = require("cosy.widget.desktop.stat"),
+    rings = require("cosy.widget.desktop.rings"),
 }
 
 return desktop
