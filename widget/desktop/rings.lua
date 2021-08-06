@@ -22,6 +22,8 @@ local rings = {
 rings.mt = {}
 
 rings.defaults = {
+    x = 25,
+    y = 25,
     bg_color = gears.color(beautiful.fg_normal.."40"),
     fg_color = gears.color(beautiful.fg_normal.."a0"),
 }
@@ -209,8 +211,8 @@ local function setup_arcs(self, cr)
     -- TODO: replace const width with configurable
     local width = dpi(24)
 
-    local x = dpi(160)
-    local y = dpi(100)
+    local x = 75 + width
+    local y = 75 + width
     local angle_start = 3 * (pi / 180)
     local angle_end = 118 * (pi / 180)
 
@@ -314,9 +316,6 @@ function rings.new(s, properties)
     properties.w = s.geometry.width
     properties.h = s.geometry.height
 
-    if not properties.x then properties.x = 0 end
-    if not properties.y then properties.y = 0 end
-
     function rings_widget:fit(context, width, height) return width, height end
     rings_widget.setup_arcs = setup_arcs
     rings_widget.draw_arcs = draw_arcs
@@ -342,8 +341,12 @@ function rings.new(s, properties)
     local cpu_graph_widget = cpu_graph.new({})
 
     local widgets = wibox.layout.manual()
+
+    -- Replace with configurable values once implemented
+    local diameter = (75 + dpi(24)) * 2
+
     widgets:add_at(rings_widget, {x=0, y=0, width=500, height=500})
-    widgets:add_at(cpu_graph_widget, {x=450, y=50, width=500, height=200})
+    widgets:add_at(cpu_graph_widget, {x=diameter + dpi(15), y=diameter / 2 - 100, width=500, height=100})
     local separator_config = {
         thickness = dpi(1),
         border_width = 0,
@@ -351,7 +354,7 @@ function rings.new(s, properties)
         color = beautiful.fg_normal,
         shape = gears.shape["rectangle"],
     }
-    widgets:add_at(wibox.widget.separator(separator_config), {x=450, y=250, width=500, height=dpi(1)})
+    widgets:add_at(wibox.widget.separator(separator_config), {x=diameter + dpi(15), y=diameter/2, width=500, height=dpi(1)})
 
     rings_box:set_widget(widgets)
 
