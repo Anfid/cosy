@@ -14,28 +14,28 @@ volume.mt = {}
 
 volume.defaults = {
     timeout = 3,
-    orientation = "vertical",
+    rotation = "north",
     size = 100,
-    width = nil,
     bar_width = 3,
     indicator_width = 2,
     indicator_offset = 5,
 }
 
-local function draw_vertical(widget, context, cr, width, height)
-    if widget.vol > 100 then
+local function draw(self, context, cr, width, height)
+    local height = math.min(self.size, height)
+    if self.vol > 100 then
         cr:set_source(gears.color(beautiful.color_red .. "a0"))
-    elseif widget.vol >= 75 then
+    elseif self.vol >= 75 then
         cr:set_source(gears.color(beautiful.color_yellow .. "a0"))
     else
         cr:set_source(gears.color(beautiful.color_green .. "a0"))
     end
-    cr:set_line_width(widget.bar_width)
+    cr:set_line_width(self.bar_width)
 
     local x = width / 2
-    local val = widget.size - (widget.vol <= 100 and widget.vol or 100) * (widget.size / 100)
+    local val = height - (self.vol <= 100 and self.vol or 100) * (height / 100)
 
-    local off = widget.offset
+    local off = self.offset
 
     cr:move_to(x, height + off)
     cr:line_to(x, val + off)
@@ -47,51 +47,15 @@ local function draw_vertical(widget, context, cr, width, height)
     cr:stroke()
 
     cr:set_source(gears.color(beautiful.fg_normal .. "a0"))
-    cr:set_line_width(widget.indicator_width)
-    local i = widget.bar_width / 2 + widget.indicator_offset
+    cr:set_line_width(self.indicator_width)
+    local i = self.bar_width / 2 + self.indicator_offset
     cr:move_to(x - i, val + off)
     cr:line_to(x + i, val + off)
     cr:stroke()
 end
 
-local function draw_horizontal(widget, context, cr, width, height)
-    if widget.vol >= 100 then
-        cr:set_source(gears.color(beautiful.color_red .. "a0"))
-    elseif widget.vol >= 75 then
-        cr:set_source(gears.color(beautiful.color_yellow .. "a0"))
-    else
-        cr:set_source(gears.color(beautiful.color_green .. "a0"))
-    end
-    cr:set_line_width(widget.bar_width)
-
-    local y = (widget.width or height) / 2
-    local val = (widget.vol <= 100 and widget.vol or 100) * (widget.size / 100)
-
-    local off = widget.offset
-
-    cr:move_to(0 - off, y)
-    cr:line_to(val - off, y)
-    cr:stroke()
-
-    cr:set_source(gears.color(beautiful.bg_focus .. "a0"))
-    cr:move_to(val - off, y)
-    cr:line_to(widget.size - off, y)
-    cr:stroke()
-
-    cr:set_source(gears.color(beautiful.fg_normal .. "a0"))
-    cr:set_line_width(widget.indicator_width)
-    local i = widget.bar_width / 2 + widget.indicator_offset
-    cr:move_to(val - off, y - i)
-    cr:line_to(val - off, y + i)
-    cr:stroke()
-end
-
-local function fit_vertical(widget, context, width, height)
+local function fit(widget, context, width, height)
     return widget.width or width, widget.size
-end
-
-local function fit_horizontal(widget, context, width, height)
-    return widget.size, widget.width or height
 end
 
 function volume.new(properties)
@@ -101,15 +65,8 @@ function volume.new(properties)
     volume_widget.shown = false
     volume_widget.offset = 0
 
-    if volume_widget.orientation == "vertical" then
-        volume_widget.draw = draw_vertical
-        volume_widget.fit = fit_vertical
-    elseif volume_widget.orientation == "horizontal" then
-        volume_widget.draw = draw_horizontal
-        volume_widget.fit = fit_horizontal
-    else
-        error("Wrong volume widget orientation")
-    end
+    volume_widget.draw = draw
+    volume_widget.fit = fit
 
     function volume_widget:update()
         self.vol = audio:volume_get() or 0
@@ -127,7 +84,8 @@ function volume.new(properties)
             volume_widget.shown = false
             volume_widget.animation_timer:again()
             return false
-        end)
+        end
+    )
 
     volume_widget.animation_timer = gears.timer.start_new(
         0.005,
@@ -145,11 +103,17 @@ function volume.new(properties)
             end
         end)
 
-    volume_widget:update()
+    local transformed = wibox.container.rotate(volume_widget, properties.rotation)
+
+    if volume_widget.centered then
+        transformed = wibox.container.place(transformed)
+    end
 
     audio.connect_signal("audio::volume", function() volume_widget:update() end)
 
-    return volume_widget
+    volume_widget:update()
+
+    return transformed
 end
 
 function volume.mt:__call(...)
