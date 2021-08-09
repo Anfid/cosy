@@ -33,6 +33,7 @@ local status = {
         available = 0,
     },
     rom = {},
+    power = {},
     temp = {
         -- Temperature in millidegrees celcius per physical core
         cpu = {
@@ -214,7 +215,101 @@ function status.ram:update()
     self.available = tonumber(avail)
 end
 
-function status.rom:init()
+function status.rom:init(update_time)
+end
+
+function status.rom:update()
+end
+
+function status.power:init(update_time)
+    if type(update_time) ~= "number" then
+        update_time = 1
+    end
+
+    if self.initialized == true then
+        -- If default timeout is different from 1, nil is denied by design to prevent
+        -- external modules from load order errors
+        if update_time ~= self.update_timer.timeout then
+            error("cosy.system.status: Battery status on various timeouts is not yet implemented")
+        else
+            -- Already initialized
+            return
+        end
+    end
+
+    self.units = {}
+    self.units.bat = {}
+    self.units.ac = {}
+    for line in io.popen("for x in /sys/class/power_supply/*; do printf \"%s \" $x; cat $x/type; done"):lines() do
+        local name, type = line:match("/sys/class/power_supply/([^%s]-)%s+([^%s]+)")
+        if type == "Battery" then
+            self.units.bat[name] = {}
+        else
+            self.units.ac[name] = {}
+        end
+    end
+
+    self:update()
+    self:initialize_default_units()
+
+    self.update_timer = gears.timer.start_new(
+        update_time,
+        function()
+            self:update()
+            status.emit_signal("power::updated")
+            return true
+        end
+    )
+
+    self.initialized = true
+end
+
+function status.power:initialize_default_units()
+    for _, bat in pairs(self.units.bat) do
+        self.battery = bat
+        if bat.status == "charging" or bat.status == "discharging" or bat.status == "full" then
+            break
+        end
+    end
+
+    for _, ac in pairs(self.units.ac) do
+        self.ac = ac
+        if ac.online then
+            break
+        end
+    end
+end
+
+function status.power:update()
+    for name, battery in pairs(self.units.bat) do
+        local bat_status = util.file.read("/sys/class/power_supply/"..name.."/status")
+        if bat_status ~= nil then
+            battery.status = bat_status:lower()
+        end
+
+        local charge_now = util.file.read("/sys/class/power_supply/"..name.."/charge_now")
+        local charge_full = util.file.read("/sys/class/power_supply/"..name.."/charge_full")
+        if charge_now ~= nil and charge_full ~= nil then
+            battery.charge_now = tonumber(charge_now) / tonumber(charge_full)
+        end
+
+        local voltage = util.file.read("/sys/class/power_supply/"..name.."/voltage_now")
+        if voltage ~= nil then
+            battery.voltage = tonumber(voltage)
+        end
+    end
+
+    for name, ac in pairs(self.units.ac) do
+        local online = util.file.read("/sys/class/power_supply/"..name.."/online")
+
+        if online ~= nil and tonumber(online) ~= 0 then
+            ac.online = true
+        else
+            ac.online = false
+        end
+    end
+
+    status.emit_signal("power::updated")
 end
 
 function status.temp:init(update_time)
