@@ -28,6 +28,7 @@ local audio = {
         read_buf = "",
         fifo = nil,
     },
+    player = {}
 }
 
 local signals = {}

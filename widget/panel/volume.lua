@@ -9,6 +9,9 @@ local gears = require("gears")
 local wibox = require("wibox")
 local audio = require("cosy.system.audio")
 
+local min = math.min
+local max = math.max
+
 local volume = {}
 volume.mt = {}
 
@@ -19,10 +22,13 @@ volume.defaults = {
     bar_width = 3,
     indicator_width = 2,
     indicator_offset = 5,
+    fps = 60,
+    hide_time = 1,
+    show_time = 0.3,
 }
 
 local function draw(self, context, cr, width, height)
-    local height = math.min(self.size, height)
+    local height = min(self.size, height)
     if self.vol > 100 then
         cr:set_source(gears.color(beautiful.color_red .. "a0"))
     elseif self.vol >= 75 then
@@ -54,8 +60,10 @@ local function draw(self, context, cr, width, height)
     cr:stroke()
 end
 
-local function fit(widget, context, width, height)
-    return widget.width or width, widget.size
+local function fit(self, context, width, height)
+    local width = min(width, max(self.indicator_width, self.bar_width))
+    local height = min(height, max(0, self.size - self.offset))
+    return width, height
 end
 
 function volume.new(properties)
@@ -88,15 +96,18 @@ function volume.new(properties)
     )
 
     volume_widget.animation_timer = gears.timer.start_new(
-        0.005,
+        1/properties.fps,
         function()
             if volume_widget.shown and volume_widget.offset > 0 then
-                volume_widget.offset = volume_widget.offset - 2
-                volume_widget:emit_signal("widget::updated")
+                local offset_delta = properties.size * (1 / properties.fps) / properties.show_time
+                volume_widget.offset = max(volume_widget.offset - offset_delta, 0)
+                volume_widget:emit_signal_recursive("widget::layout_changed")
                 return true
             elseif not volume_widget.shown and volume_widget.offset < (volume_widget.size + volume_widget.indicator_width / 2)  then
-                volume_widget.offset = volume_widget.offset + 1
-                volume_widget:emit_signal("widget::updated")
+                local offset_delta = properties.size * (1 / properties.fps) / properties.hide_time
+                local offset_limit = volume_widget.size + volume_widget.indicator_width / 2
+                volume_widget.offset = min(volume_widget.offset + offset_delta, offset_limit)
+                volume_widget:emit_signal_recursive("widget::layout_changed")
                 return true
             else
                 return false
