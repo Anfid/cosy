@@ -4,16 +4,16 @@
 --
 -- @module util
 ---------------------------------------------------------------------------
-
 local awful = require("awful")
 local beautiful = require("beautiful")
 local gears = require("gears")
 
-local util = {}
-util.math = {}
-util.bit = {}
-util.string = {}
-util.file = {}
+local util = {
+    math = {},
+    bit = {},
+    string = {},
+    file = {},
+}
 
 --- Set wallpaper for screen s
 -- @tparam screen s Screen to set wallpaper
@@ -33,7 +33,9 @@ end
 -- @tparam client c Client to update titlebar state
 function util.manage_titlebar(c)
     -- Fullscreen clients are considered floating. Return to prevent clients from shifting down in fullscreen mode
-    if c.fullscreen then return end
+    if c.fullscreen then
+        return
+    end
     local show = c.floating or awful.layout.get(c.screen) == awful.layout.suit.floating
     if show then
         if c.titlebar == nil then
@@ -69,47 +71,47 @@ function util.table_count(table)
     return count
 end
 
-
 function util.math.round(x) return x + 0.5 - (x + 0.5) % 1 end
 
-
 if _G._VERSION == "Lua 5.3" then
-    function util.bit.rol(x, n)
-        util.bit.rol = bit32.lrotate
-    end
+    util.bit.rol = _G.bit32.lrotate
 else
-    util.bit.rol = bit.rol
+    util.bit.rol = _G.bit.rol
 end
 
 function util.string.trim(str)
     return string.gsub(str, "^%s*(.-)%s*$", "%1")
 end
 
-function util.file.exists(command)
-    local f = io.open(command)
-    if f then f:close() end
-    return f and true or false
+function util.file.exists(path)
+    local handle = io.open(path)
+    if handle then
+        handle:close()
+    end
+    return handle and true or false
 end
 
-function util.file.read(file)
-    local file = io.open(file)
-    if not file then return nil end
-    local text = file:read('*all')
-    file:close()
+function util.file.read(path)
+    local handle = io.open(path)
+    if not handle then
+        return nil
+    end
+    local text = handle:read('*all')
+    handle:close()
     return text
 end
 
-function util.file.new(file, content)
-    local file = io.open(file, "w")
-    if not file then return nil end
-    if content ~= nil then
-        file:write(content)
+function util.file.new(path, content)
+    local handle = io.open(path, "w")
+    if not handle then
+        return nil
     end
-    file:close()
+    if content ~= nil then
+        handle:write(content)
+    end
+    handle:close()
 end
 
-function util.file.delete(file)
-    return os.remove(file)
-end
+util.file.delete = os.remove
 
 return util
