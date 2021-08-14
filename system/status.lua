@@ -6,7 +6,9 @@
 
 local gears = require("gears")
 local util = require("cosy.util")
+
 local tonumber = tonumber
+local trim = util.string.trim
 
 local d = require("cosy.dbg")
 
@@ -282,25 +284,25 @@ end
 
 function status.power:update()
     for name, battery in pairs(self.units.bat) do
-        local bat_status = util.file.read("/sys/class/power_supply/"..name.."/status")
+        local bat_status = trim(util.file.read("/sys/class/power_supply/"..name.."/status"))
         if bat_status ~= nil then
             battery.status = bat_status:lower()
         end
 
-        local charge_now = util.file.read("/sys/class/power_supply/"..name.."/charge_now")
-        local charge_full = util.file.read("/sys/class/power_supply/"..name.."/charge_full")
+        local charge_now = trim(util.file.read("/sys/class/power_supply/"..name.."/charge_now"))
+        local charge_full = trim(util.file.read("/sys/class/power_supply/"..name.."/charge_full"))
         if charge_now ~= nil and charge_full ~= nil then
             battery.charge_now = tonumber(charge_now) / tonumber(charge_full)
         end
 
-        local voltage = util.file.read("/sys/class/power_supply/"..name.."/voltage_now")
+        local voltage = trim(util.file.read("/sys/class/power_supply/"..name.."/voltage_now"))
         if voltage ~= nil then
             battery.voltage = tonumber(voltage)
         end
     end
 
     for name, ac in pairs(self.units.ac) do
-        local online = util.file.read("/sys/class/power_supply/"..name.."/online")
+        local online = trim(util.file.read("/sys/class/power_supply/"..name.."/online"))
 
         if online ~= nil and tonumber(online) ~= 0 then
             ac.online = true

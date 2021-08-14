@@ -12,6 +12,7 @@ local gears = require("gears")
 local util = {}
 util.math = {}
 util.bit = {}
+util.string = {}
 util.file = {}
 
 --- Set wallpaper for screen s
@@ -80,6 +81,9 @@ else
     util.bit.rol = bit.rol
 end
 
+function util.string.trim(str)
+    return string.gsub(str, "^%s*(.-)%s*$", "%1")
+end
 
 function util.file.exists(command)
     local f = io.open(command)
