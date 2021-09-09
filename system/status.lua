@@ -289,9 +289,19 @@ function status.power:update()
             battery.status = bat_status:lower()
         end
 
-        local charge_now = trim(util.file.read("/sys/class/power_supply/"..name.."/charge_now"))
-        local charge_full = trim(util.file.read("/sys/class/power_supply/"..name.."/charge_full"))
+        local charge_now = util.file.read("/sys/class/power_supply/"..name.."/charge_now")
+        if charge_now == nil then
+            charge_now = util.file.read("/sys/class/power_supply/"..name.."/energy_now")
+        end
+
+        local charge_full = util.file.read("/sys/class/power_supply/"..name.."/charge_full")
+        if charge_full == nil then
+            charge_full = util.file.read("/sys/class/power_supply/"..name.."/energy_full")
+        end
+
         if charge_now ~= nil and charge_full ~= nil then
+            charge_now = trim(charge_now)
+            charge_full = trim(charge_full)
             battery.charge_now = tonumber(charge_now) / tonumber(charge_full)
         end
 
