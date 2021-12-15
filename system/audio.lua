@@ -37,6 +37,7 @@ function audio.init_pulse_subscription()
     audio.subscription_pid = awful.spawn.with_line_callback("pactl subscribe", {
         stdout = function(line)
             local event, object, id = line:match([[Event '(%a+)' on ([a-z\-]+) #(%d)]])
+            local object = object:gsub('-', '_')
             local id = tonumber(id)
             if audio.on_event[object] ~= nil and audio.on_event[object][event] ~= nil then
                 audio.on_event[object][event](id)
@@ -55,6 +56,7 @@ end
 
 -- Event actions
 audio.on_event.sink = {}
+audio.on_event.sink_input = {}
 
 function audio.on_event.sink.change(id)
     if id ~= nil then
@@ -72,6 +74,10 @@ function audio.on_event.sink.new(id)
     if id == audio.sink then
         audio:init_default_sink()
     end
+end
+
+function audio.on_event.sink_input.change(_)
+    audio:init_default_sink()
 end
 
 audio.cava.config_template = [[
@@ -171,8 +177,11 @@ end
 function audio:init_default_sink()
     awful.spawn.easy_async("pactl list sinks short",
         function(out)
-            self.sink = tonumber(out:match("(%d+)%s+[^\n]-%s+IDLE\n") or out:match("(%d+)%s+[^\n]-%s+RUNNING\n"))
-            self.emit_signal("audio::volume")
+            local old_sink = self.sink
+            self.sink = tonumber(out:match("(%d+)%s+[^\n]-%s+RUNNING\n") or out:match("(%d+)%s+[^\n]-%s+IDLE\n"))
+            if old_sink ~= self.sink then
+                self.emit_signal("audio::volume")
+            end
         end
     )
 end
